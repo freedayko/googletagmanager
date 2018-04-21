@@ -1,0 +1,22 @@
+{
+	"name" : "freedayko/googletagmanager",
+	"description" : "Google Tag Manager Module for Prestashop",
+	"homepage" : "https://github.com/freedayko/googletagmanager",
+	"license" : "MIT",
+	"config" : {
+		"preferred-install" : "dist"
+	},
+	"type" : "prestashop-module",
+	"authors" : [{
+			"email" : "registros@elamasadero.com",
+			"name" : "elamasadero"
+		},{
+			"email" : "benichou.software@gmail.com",
+			"name" : "Benichou"
+		},
+    {
+			"email" : "freeday.dp@gmail.com",
+			"name" : "Aleksandr Palyan"
+		}
+	]
+}
