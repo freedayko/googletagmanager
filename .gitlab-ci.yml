@@ -1,0 +1,12 @@
+stages:
+  - deploy
+
+master-deploy:
+  type: deploy
+  only:
+    - master
+  tags:
+    - production
+  script:
+    - ls -la .
+    - rsync -ar --exclude '.git' --exclude '.gitignore' --exclude '.gitlab-ci.yml' . /usr/local/www/shkodnik.com.ua/modules/googletagmanager
