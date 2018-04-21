@@ -36,7 +36,7 @@ dataLayer.push({
 {/if}
 {if $pageType}
 dataLayer.push({
-    'PageType': '{$pageType}'{if $productId},
+    'PageType': '{$pageType}'{if !empty($productId)},
     'ProductID': '{$productId}'
 {/if}
 });
@@ -46,20 +46,23 @@ dataLayer.push({
     'hashedEmail': '{$hashedEmail}'
 });
 {/if}
-{if $three_products}
+{if !empty($three_products)}
 dataLayer.push({
    'ProductIDList': [{foreach from=$three_products item=product}'{$product['id_product']}'{if not $product@last}, {/if}{/foreach}]
 });
 {/if}
-{if $transactionProducts}
+{if !empty($transactionProducts)}
 dataLayer.push({
     'ProductIDList': [{foreach from=$transactionProducts item=product}{literal}{{/literal}'id' : '{$product['id_product']}', 'price' : '{$product['price_wt']}', 'quantity':'{$product['quantity']}'{literal}}{/literal} {if not $product@last}, {/if}{/foreach}]
 });
 {/if}
-{if $type_of_customer}
+{if !empty($type_of_customer)}
 dataLayer.push({
     'typeof_c' : '{$type_of_customer}'
 });
+{/if}
+{if !empty($dataLayer)}
+dataLayer.push({$dataLayer|json_encode});
 {/if}
 </script>
 <!-- End Google Tag Manager Data Layer -->
