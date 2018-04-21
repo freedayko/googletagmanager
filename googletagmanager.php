@@ -140,6 +140,9 @@ class GoogleTagManager extends Module
 
         $this->context->smarty->assign("GTM_ID",$tagManagerId);
         
+        $dataLayer = new stdClass();
+        $dataLayer->ecommerce = new stdClass();
+        
         if (isset($this->context->controller->php_self)) {
             switch($this->context->controller->php_self) {
                 case 'index':
@@ -160,7 +163,13 @@ class GoogleTagManager extends Module
             }
             $this->context->smarty->assign("pageType", $pageType);
             if ($pageType == 'product') {
+                $dataLayer->ecommerce->detail = new stdClass();
                 $product = $this->context->controller->getProduct();
+                $dataLayerProduct = new stdClass();
+                $dataLayerProduct->name = $product->name;
+                $dataLayerProduct->id = $product->id;
+                $dataLayer->ecommerce->detail->products = array($dataLayerProduct);
+                
                 $this->context->smarty->assign("productId", $product->id);
             }
         }
@@ -178,6 +187,7 @@ class GoogleTagManager extends Module
         else
             $hashedEmail = '';
         $this->context->smarty->assign("hashedEmail",$hashedEmail);
+        $this->context->smarty->assign('dataLayer', $dataLayer);
         return $this->display(__FILE__, 'views/templates/hooks/header.tpl');
     }
 
