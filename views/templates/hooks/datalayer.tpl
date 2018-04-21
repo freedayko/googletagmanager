@@ -36,7 +36,7 @@ dataLayer.push({
 {/if}
 {if $pageType}
 dataLayer.push({
-    'PageType': '{$pageType}'{if $productId},
+    'PageType': '{$pageType}'{if !empty($productId)},
     'ProductID': '{$productId}'
 {/if}
 });

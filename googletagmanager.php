@@ -141,7 +141,23 @@ class GoogleTagManager extends Module
         $this->context->smarty->assign("GTM_ID",$tagManagerId);
         
         if (isset($this->context->controller->php_self)) {
-            $pageType = $this->context->controller->php_self;
+            switch($this->context->controller->php_self) {
+                case 'index':
+                    $pageType = 'home';
+                    break;
+                case 'category':
+                case 'product':
+                    $pageType = $this->context->controller->php_self;
+                    break;
+                case 'order':
+                    $pageType = $this->context->controller->step == 0 ? 'cart' : false;
+                    break;
+                case 'order-confirmation':
+                    $pageType = 'purchase';
+                    break;
+                default:
+                    $pageType = false;
+            }
             $this->context->smarty->assign("pageType", $pageType);
             if ($pageType == 'product') {
                 $product = $this->context->controller->getProduct();
