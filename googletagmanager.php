@@ -44,12 +44,6 @@ class GoogleTagManager extends Module
             // Use to set common dataLayer vars
             && $this->registerHook('displayTop')
 
-            // Use to set Homepage dataLayer vars
-            && $this->registerHook('displayHome')
-
-            // Use to set Product page dataLayer vars
-            && $this->registerHook('displayFooterProduct')
-
             // Use to set product listings (categories and search) page dataLayer vars
             && $this->registerHook('listingPage')
 
@@ -145,6 +139,16 @@ class GoogleTagManager extends Module
 			return;
 
         $this->context->smarty->assign("GTM_ID",$tagManagerId);
+        
+        if (isset($this->context->controller->php_self)) {
+            $pageType = $this->context->controller->php_self;
+            $this->context->smarty->assign("pageType", $pageType);
+            if ($pageType == 'product') {
+                $product = $this->context->controller->getProduct();
+                $this->context->smarty->assign("productId", $product->id);
+            }
+        }
+
         //Set up common Criteo One Tag vars
         $customer = $this->context->customer; //id_customer = $params['cart']->id_customer;
         if( $customer->id ) {
@@ -159,21 +163,6 @@ class GoogleTagManager extends Module
             $hashedEmail = '';
         $this->context->smarty->assign("hashedEmail",$hashedEmail);
         return $this->display(__FILE__, 'views/templates/hooks/header.tpl');
-    }
-    public function hookDisplayHome($params) {
-        //Homepage DataLayer value for Criteo One Tag
-        
-        $this->context->smarty->assign("PageType", "HomePage");
-    }
-
-    public function hookDisplayFooterProduct($params) {
-        //DataLayer value for Criteo One Tag
-        
-        $id_product = Tools::getValue('id_product');
-        
-        $this->context->smarty->assign("ProductID", $id_product);
-        $this->context->smarty->assign("PageType", "ProductPage");
-
     }
 
     public function hookActionProductListOverride($params) {

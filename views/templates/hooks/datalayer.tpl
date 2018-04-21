@@ -34,19 +34,16 @@ dataLayer.push({
     'TransactionID' : '{$transactionId}'
 });
 {/if}
-{if $PageType}
+{if $pageType}
 dataLayer.push({
-    'PageType': '{$PageType}'
+    'PageType': '{$pageType}'{if $productId},
+    'ProductID': '{$productId}'
+{/if}
 });
 {/if}
 {if $hashedEmail}
 dataLayer.push({
     'hashedEmail': '{$hashedEmail}'
-});
-{/if}
-{if $ProductID}
-dataLayer.push({
-    'ProductID': '{$ProductID}'
 });
 {/if}
 {if $three_products}
