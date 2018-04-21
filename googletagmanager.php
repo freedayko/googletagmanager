@@ -38,14 +38,11 @@ class GoogleTagManager extends Module
     {        
         return (
             parent::install()
-            // Custom hook to add tag right after <head>
-            && $this->registerHook('GoogleTagManagerOnTop')
-
-            // Custom hook to add iframe right after <body>
-            && $this->registerHook('GoogleTagManagerAfterBody')
-
             // Use to set common dataLayer vars
             && $this->registerHook('displayHeader')
+
+            // Use to set common dataLayer vars
+            && $this->registerHook('displayTop')
 
             // Use to set Homepage dataLayer vars
             && $this->registerHook('displayHome')
@@ -77,30 +74,91 @@ class GoogleTagManager extends Module
         return parent::uninstall();
     }
 
-    public function hookGoogleTagManagerOnTop($params) {
-        //Custom hook to add tag right after <head>
-        return $this->display(__FILE__, 'views/templates/hooks/googletagmanagerontop.tpl');
-    }
-    public function hookGoogleTagManagerAfterBody() {
-        // Custom hook to add iframe right after <body>
-        return $this->display(__FILE__, 'views/templates/hooks/googletagmanagerafterbody.tpl');
+	public function getContent()
+	{
+		$output = '';
+
+		// If form has been sent
+		if (Tools::isSubmit('submit'.$this->name))
+		{
+			Configuration::updateValue('GOOGLE_TAG_MANAGER_ID', Tools::getValue('GOOGLE_TAG_MANAGER_ID'));
+			$output .= $this->displayConfirmation($this->l('Settings updated successfully'));
+		}
+
+		$output .= $this->renderForm();
+		return $output;
+	}
+
+	public function renderForm()
+	{
+		$helper = new HelperForm();
+		$helper->show_toolbar = false;
+		$lang = new Language((int)Configuration::get('PS_LANG_DEFAULT'));
+		$helper->default_form_language = $lang->id;
+		$helper->allow_employee_form_lang = Configuration::get('PS_BO_ALLOW_EMPLOYEE_FORM_LANG') ? Configuration::get('PS_BO_ALLOW_EMPLOYEE_FORM_LANG') : 0;
+
+		$helper->currentIndex = $this->context->link->getAdminLink('AdminModules', false).'&configure='.$this->name.'&tab_module='.$this->tab.'&module_name='.$this->name;
+		$helper->token = Tools::getAdminTokenLite('AdminModules');
+
+		// Title and toolbar
+		$helper->title = $this->displayName;
+		$helper->submit_action = 'submit'.$this->name;
+
+		$fields_forms = array(
+			'form' => array(
+				'legend' => array(
+					'title' => $this->l('General settings'),
+					'icon' => 'icon-cogs'
+				),
+				'input' => array(
+					array(
+						'type' => 'text',
+						'label' => $this->l('Tag Manager ID'),
+						'name' => 'GOOGLE_TAG_MANAGER_ID',
+						'size' => 20,
+						'required' => true,
+						'hint' => $this->l('Enter here your ID (GTM-XXXXXX).')
+					)
+				),
+				'submit' => array(
+					'title' => $this->l('Save')
+				)
+			)
+		);
+
+		// Load current value
+		$helper->fields_value['GOOGLE_TAG_MANAGER_ID'] = Configuration::get('GOOGLE_TAG_MANAGER_ID');
+
+		return $helper->generateForm(array($fields_forms));
+	}
+
+    public function hookDisplayTop() {
+		$tagManagerId = Tools::safeOutput(Configuration::get('GOOGLE_TAG_MANAGER_ID'));
+		if (!$tagManagerId)
+			return;
+        return $this->display(__FILE__, 'views/templates/hooks/top.tpl');
     }
     
     public function hookDisplayHeader($params) {
+		$tagManagerId = Tools::safeOutput(Configuration::get('GOOGLE_TAG_MANAGER_ID'));
+		if (!$tagManagerId)
+			return;
+
+        $this->context->smarty->assign("GTM_ID",$tagManagerId);
         //Set up common Criteo One Tag vars
         $customer = $this->context->customer; //id_customer = $params['cart']->id_customer;
         if( $customer->id ) {
-            $customer_email = $customer->email;
-            $processed_address = strtolower($customer_email); //conversion to lower case 
-            $processed_address = trim($processed_address); //trimming
-            $processed_address = mb_convert_encoding($processed_address, "UTF-8", mb_detect_encoding($customer_email)); //conversion from ISO-8859-1 to UTF-8 (replace "ISO-8859-1" by the source encoding of your string)
-            $processed_address = md5($processed_address); //hash with MD5 algorithm
-            $hashedEmail = $processed_address;
-            $this->context->smarty->assign("hashedEmail",$hashedEmail);
+            $customerEmail = $customer->email;
+            $processedAddress = strtolower($customerEmail); //conversion to lower case 
+            $processedAddress = trim($processedAddress); //trimming
+            $processedAddress = mb_convert_encoding($processedAddress, "UTF-8", mb_detect_encoding($customerEmail)); //conversion from ISO-8859-1 to UTF-8 (replace "ISO-8859-1" by the source encoding of your string)
+            $processedAddress = md5($processedAddress); //hash with MD5 algorithm
+            $hashedEmail = $processedAddress;
         }
         else
-          $hashedEmail = '';
-
+            $hashedEmail = '';
+        $this->context->smarty->assign("hashedEmail",$hashedEmail);
+        return $this->display(__FILE__, 'views/templates/hooks/header.tpl');
     }
     public function hookDisplayHome($params) {
         //Homepage DataLayer value for Criteo One Tag
