@@ -1,4 +1,4 @@
-{include file='./datalayer.tpl'}
+{include file='../dataLayer.tpl'}
 <!-- Google Tag Manager -->
 <script data-keepinline="true">(function(w,d,s,l,i){literal}{w[l]=w[l]||[];w[l].push({'gtm.start':
 new Date().getTime(),event:'gtm.js'});var f=d.getElementsByTagName(s)[0],

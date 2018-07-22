@@ -15,12 +15,14 @@ class GoogleTagManager extends Module
 {
     // add custom error messages
     protected $errors = array();
+    
+    protected $dataLayer;
 
     public function __construct()
     {
         $this->name = 'googletagmanager';
         $this->tab = 'analytics_stats';
-        $this->version = '0.1';
+        $this->version = '0.1.1';
         $this->author = 'Rodrigo Varela Tabuyo';
         $this->module_key = '5cb794a64177c47254bef97263fe8lbc';
         $this->bootstrap = false;
@@ -32,6 +34,9 @@ class GoogleTagManager extends Module
         $this->description = $this->l('Añade tags y no mires atrás');
 
         $this->confirmUninstall = $this->l('¿Está seguro de quieres desinstalar este módulo?');
+
+        $this->dataLayer = new stdClass();
+        
     }
 
     public function install()
@@ -44,10 +49,7 @@ class GoogleTagManager extends Module
             // Use to set common dataLayer vars
             && $this->registerHook('displayTop')
 
-            // Use to set product listings (categories and search) page dataLayer vars
-            && $this->registerHook('listingPage')
-
-            && $this->registerHook('actionProductListOverride')
+            && $this->registerHook('actionProductListModifier')
 
             && $this->registerHook('actionSearch')
 
@@ -126,22 +128,16 @@ class GoogleTagManager extends Module
 		return $helper->generateForm(array($fields_forms));
 	}
 
-    public function hookDisplayTop() {
-		$tagManagerId = Tools::safeOutput(Configuration::get('GOOGLE_TAG_MANAGER_ID'));
-		if (!$tagManagerId)
-			return;
-        return $this->display(__FILE__, 'views/templates/hooks/top.tpl');
-    }
-    
     public function hookDisplayHeader($params) {
 		$tagManagerId = Tools::safeOutput(Configuration::get('GOOGLE_TAG_MANAGER_ID'));
 		if (!$tagManagerId)
 			return;
 
+        $this->context->smarty->registerFilter('output',array($this, 'outputFilter'));
+
         $this->context->smarty->assign("GTM_ID",$tagManagerId);
         
-        $dataLayer = new stdClass();
-        $dataLayer->ecommerce = new stdClass();
+        $this->dataLayer->ecommerce = new stdClass();
         
         if (isset($this->context->controller->php_self)) {
             switch($this->context->controller->php_self) {
@@ -161,19 +157,22 @@ class GoogleTagManager extends Module
                 default:
                     $pageType = false;
             }
-            $this->context->smarty->assign("pageType", $pageType);
+            $this->dataLayer->pageType = $pageType;
             if ($pageType == 'product') {
-                $dataLayer->ecommerce->detail = new stdClass();
+                $this->dataLayer->ecommerce->detail = new stdClass();
                 $product = $this->context->controller->getProduct();
                 $dataLayerProduct = new stdClass();
                 $dataLayerProduct->name = $product->name;
                 $dataLayerProduct->id = $product->id;
-                $dataLayer->ecommerce->detail->products = array($dataLayerProduct);
+                $dataLayerProduct->brand = $product->manufacturer_name;
+                $dataLayerProduct->category = $product->id_category_default;
+                $dataLayerProduct->price = (string)$product->getPrice(true, null, 2);
+                $this->dataLayer->ecommerce->detail->products = array($dataLayerProduct);
                 
                 $this->context->smarty->assign("productId", $product->id);
             }
         }
-
+        
         //Set up common Criteo One Tag vars
         $customer = $this->context->customer; //id_customer = $params['cart']->id_customer;
         if( $customer->id ) {
@@ -182,26 +181,43 @@ class GoogleTagManager extends Module
             $processedAddress = trim($processedAddress); //trimming
             $processedAddress = mb_convert_encoding($processedAddress, "UTF-8", mb_detect_encoding($customerEmail)); //conversion from ISO-8859-1 to UTF-8 (replace "ISO-8859-1" by the source encoding of your string)
             $processedAddress = md5($processedAddress); //hash with MD5 algorithm
-            $hashedEmail = $processedAddress;
+            $this->dataLayer->hashedEmail =  $processedAddress;
         }
-        else
-            $hashedEmail = '';
-        $this->context->smarty->assign("hashedEmail",$hashedEmail);
-        $this->context->smarty->assign('dataLayer', $dataLayer);
+        
+        $this->context->smarty->assign('dataLayer', $this->dataLayer);
         return $this->display(__FILE__, 'views/templates/hooks/header.tpl');
     }
 
-    public function hookActionProductListOverride($params) {
+    public function outputFilter($tplOutput, Smarty_Internal_Template $template) {
+        if (($headPos = strpos($tplOutput, '<head')) !== false) {
+            $headEnd = strpos($tplOutput, '>', $headPos) + 1;
+            $this->context->smarty->assign('dataLayer', $this->dataLayer);
+            $headPlugin = $this->display(__FILE__, 'views/templates/hooks/header.tpl');
+            $tplOutput = substr_replace($tplOutput, PHP_EOL . $headPlugin, $headEnd, 0);
+            $bodyEnd = strpos($tplOutput, '>', strpos($tplOutput, '<body')) + 1;
+            $bodyPlugin = $this->display(__FILE__, 'views/templates/hooks/top.tpl');
+            $tplOutput = substr_replace($tplOutput, PHP_EOL . $bodyPlugin, $bodyEnd, 0);
+//            var_dump($this->dataLayer, $tplOutput);
+        }
+        return $tplOutput;
+    }
+
+    public function hookActionProductListModifier($params) {
+        if (!isset($this->dataLayer->ecommerce->impressions)) {
+            $this->dataLayer->ecommerce->impressions = array();
+        }
+        foreach ($params['cat_products'] as $i => &$product) {
+            $impression = new stdClass();
+            $impression->id = $product['id_product'];
+            $impression->name = $product['name'];
+            $impression->brand = $product['manufacturer_name'];
+            $impression->category = $product['id_category_default'];
+            $impression->list_position = $i;
+            $impression->price = (string)$product['price'];
+            $this->dataLayer->ecommerce->impressions[] = $impression;
+        }
         //Get first three products in category page
         
-        $order_by = $this->context->controller->orderBy;
-        $order_way = $this->context->controller->orderWay;
-        $id_category = Tools::getValue('id_category');
-        $category = new Category($id_category);
-        $three_products = $category->getProducts($this->context->language->id, 1, 3, $order_by, $order_way);
-        
-        $this->context->smarty->assign("three_products", $three_products);
-        $this->context->smarty->assign("PageType", "ListingPage");
     }
 
     public function hookActionSearch($params) {
