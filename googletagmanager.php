@@ -137,6 +137,8 @@ class GoogleTagManager extends Module
 
         $this->context->smarty->assign("GTM_ID",$tagManagerId);
         
+        $this->context->controller->addJS(($this->_path).'googletagmanager.js');
+
         $this->dataLayer->ecommerce = new stdClass();
         
         if (isset($this->context->controller->php_self)) {
@@ -168,8 +170,6 @@ class GoogleTagManager extends Module
                 $dataLayerProduct->category = $product->id_category_default;
                 $dataLayerProduct->price = (string)$product->getPrice(true, null, 2);
                 $this->dataLayer->ecommerce->detail->products = array($dataLayerProduct);
-                
-                $this->context->smarty->assign("productId", $product->id);
             }
         }
         
@@ -226,10 +226,10 @@ class GoogleTagManager extends Module
     
     public function hookDisplayShoppingCart($params) {
         //DataLayer value for Criteo One Tag
-        $step_in_checkout_process= $this->context->controller->step;
-        if( $step_in_checkout_process == 0) { //show shopping cart
-            $this->context->smarty->assign("transactionProducts", $params['products']);
-            $this->context->smarty->assign("PageType", "BasketPage");
+        if( $this->context->controller->php_self == 'order') { //show shopping cart
+            $this->dataLayer->ecommerce->checkout = new stdClass();
+            $this->dataLayer->ecommerce->checkout->actionField = new stdClass();
+            $this->dataLayer->ecommerce->checkout->actionField->step = $this->context->controller->step;
         } //do not assign dataLayer vars in payment and delivery options
 
     }
