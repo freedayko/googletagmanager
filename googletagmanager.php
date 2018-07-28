@@ -183,9 +183,6 @@ class GoogleTagManager extends Module
             $processedAddress = md5($processedAddress); //hash with MD5 algorithm
             $this->dataLayer->hashedEmail =  $processedAddress;
         }
-        
-        $this->context->smarty->assign('dataLayer', $this->dataLayer);
-        return $this->display(__FILE__, 'views/templates/hooks/header.tpl');
     }
 
     public function outputFilter($tplOutput, Smarty_Internal_Template $template) {
